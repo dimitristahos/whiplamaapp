@@ -8,6 +8,7 @@ export default defineNuxtConfig({
     public: {
       OLLAMA_URL: process.env.OLLAMA_URL,
       PEXELS_API_KEY: process.env.PEXELS_API_KEY,
+      STORAGE_PATH: process.env.STORAGE_PATH,
     },
   },
 });

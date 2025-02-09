@@ -8,7 +8,7 @@ import fsDriver from "unstorage/drivers/fs";
 const pexelsClient = createClient(process.env.PEXELS_API_KEY);
 
 const storage = createStorage({
-  driver: fsDriver({ base: "storageData" }),
+  driver: fsDriver({ base: process.env.STORAGE_PATH }),
 });
 
 // Function to read existing JSON data from file
