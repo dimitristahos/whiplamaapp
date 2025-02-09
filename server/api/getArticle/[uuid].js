@@ -1,32 +1,25 @@
 import axios from "axios";
-import fs from "fs/promises";
 import { defineEventHandler, getQuery } from "h3";
+import { createStorage } from "unstorage";
+import fsDriver from "unstorage/drivers/fs";
+
+const storage = createStorage({
+  driver: fsDriver({ base: "storageData" }),
+});
+
+// Function to read existing JSON data from file
+const readJSONFile = async (uuid) => {
+  return await storage.getItem(`articles:${uuid}.json`);
+};
+
+// Function to write JSON data to file
+const writeJSONFile = async (data, uuid) => {
+  await storage.set(`articles:${uuid}.json`, data);
+};
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const routeParams = event.context.params;
-
-  const filePath = `data/articles/${routeParams.uuid}.json`;
-
-  // Function to read existing JSON data from file
-  const readJSONFile = async () => {
-    try {
-      await fs.access(filePath); // Check if the file exists
-      const fileData = await fs.readFile(filePath, "utf8");
-      return fileData ? JSON.parse(fileData) : false;
-    } catch (error) {
-      return false; // Return an empty array if the file does not exist
-    }
-  };
-
-  // Function to write JSON data to file
-  const writeJSONFile = async (data) => {
-    try {
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
-    } catch (error) {
-      console.error("Error writing JSON file:", error.message);
-    }
-  };
 
   const sys = `
 You are an API that generates developer-focused articles in JSON format. Generate a single article with the following strict specifications:
@@ -77,7 +70,7 @@ Topics must focus on:
 `;
 
   try {
-    let existingData = await readJSONFile();
+    let existingData = await readJSONFile(routeParams.uuid);
 
     if (existingData) {
       event.node.res.setHeader("Content-Type", "application/json");
@@ -102,7 +95,7 @@ Topics must focus on:
     // existingData = existingData.concat(newData);
 
     // Write the updated data back to the file
-    await writeJSONFile(newData);
+    await writeJSONFile(newData, routeParams.uuid);
 
     event.node.res.setHeader("Content-Type", "application/json");
     event.node.res.end(JSON.stringify(newData));

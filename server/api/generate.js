@@ -1,30 +1,24 @@
 import axios from "axios";
-import fs from "fs/promises";
 import { defineEventHandler, getQuery } from "h3";
 import { createClient } from "pexels";
 import { v4 as uuidv4 } from "uuid";
+import { createStorage } from "unstorage";
+import fsDriver from "unstorage/drivers/fs";
 
-const filePath = "data/collection.json";
 const pexelsClient = createClient(process.env.PEXELS_API_KEY);
+
+const storage = createStorage({
+  driver: fsDriver({ base: "storageData" }),
+});
 
 // Function to read existing JSON data from file
 const readJSONFile = async () => {
-  try {
-    await fs.access(filePath); // Check if the file exists
-    const fileData = await fs.readFile(filePath, "utf8");
-    return fileData ? JSON.parse(fileData) : [];
-  } catch (error) {
-    return []; // Return an empty array if the file does not exist
-  }
+  return (await storage.getItem("collection.json")) ?? [];
 };
 
 // Function to write JSON data to file
 const writeJSONFile = async (data) => {
-  try {
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
-  } catch (error) {
-    console.error("Error writing JSON file:", error.message);
-  }
+  await storage.set("collection.json", data);
 };
 
 // Function to fetch an image for an article

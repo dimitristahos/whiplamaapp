@@ -1,17 +1,14 @@
-import fs from "fs/promises";
 import { defineEventHandler } from "h3";
+import { createStorage } from "unstorage";
+import fsDriver from "unstorage/drivers/fs";
 
-const filePath = "data/collection.json";
+const storage = createStorage({
+  driver: fsDriver({ base: "storageData" }),
+});
 
 // Function to read existing JSON data from file
 const readJSONFile = async () => {
-  try {
-    await fs.access(filePath); // Check if the file exists
-    const fileData = await fs.readFile(filePath, "utf8");
-    return fileData ? JSON.parse(fileData) : [];
-  } catch (error) {
-    return []; // Return an empty array if the file does not exist
-  }
+  return (await storage.getItem("collection.json")) ?? [];
 };
 
 export default defineEventHandler(async (event) => {
