@@ -2,16 +2,19 @@ import { defineEventHandler } from "h3";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 
-const storage = createStorage({
-  driver: fsDriver({ base: process.env.STORAGE_PATH }),
-});
-
-// Function to read existing JSON data from file
-const readJSONFile = async () => {
-  return (await storage.getItem("collection.json")) ?? [];
-};
-
 export default defineEventHandler(async (event) => {
+  const config = useRuntimeConfig();
+  const env = config.public;
+
+  const storage = createStorage({
+    driver: fsDriver({ base: env.UNSTORAGE_PATH }),
+  });
+
+  // Function to read existing JSON data from file
+  const readJSONFile = async () => {
+    return (await storage.getItem("collection.json")) ?? [];
+  };
+
   try {
     let existingData = await readJSONFile();
 

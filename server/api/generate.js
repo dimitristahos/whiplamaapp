@@ -5,52 +5,55 @@ import { v4 as uuidv4 } from "uuid";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 
-const pexelsClient = createClient(process.env.PEXELS_API_KEY);
-
-const storage = createStorage({
-  driver: fsDriver({ base: process.env.STORAGE_PATH }),
-});
-
-// Function to read existing JSON data from file
-const readJSONFile = async () => {
-  return (await storage.getItem("collection.json")) ?? [];
-};
-
-// Function to write JSON data to file
-const writeJSONFile = async (data) => {
-  await storage.set("collection.json", data);
-};
-
-// Function to fetch an image for an article
-const fetchImageForArticle = async (title) => {
-  try {
-    // Extract key terms from the title for better image search
-    const searchTerms = title
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .split(" ")
-      .filter((word) => !["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of"].includes(word))
-      .slice(0, 3)
-      .join(" ");
-
-    const photos = await pexelsClient.photos.search({
-      query: searchTerms,
-      per_page: 1,
-      orientation: "landscape",
-    });
-
-    if (photos.photos && photos.photos.length > 0) {
-      return photos.photos[0].src.large2x;
-    }
-    return null;
-  } catch (error) {
-    console.error(`Error fetching image for "${title}":`, error.message);
-    return null;
-  }
-};
-
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
+
+  const config = useRuntimeConfig();
+  const env = config.public;
+
+  const pexelsClient = createClient(env.PEXELS_API_KEY);
+
+  const storage = createStorage({
+    driver: fsDriver({ base: env.UNSTORAGE_PATH }),
+  });
+
+  // Function to read existing JSON data from file
+  const readJSONFile = async () => {
+    return (await storage.getItem("collection.json")) ?? [];
+  };
+
+  // Function to write JSON data to file
+  const writeJSONFile = async (data) => {
+    await storage.set("collection.json", data);
+  };
+
+  // Function to fetch an image for an article
+  const fetchImageForArticle = async (title) => {
+    try {
+      // Extract key terms from the title for better image search
+      const searchTerms = title
+        .toLowerCase()
+        .replace(/[^\w\s]/g, "")
+        .split(" ")
+        .filter((word) => !["the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of"].includes(word))
+        .slice(0, 3)
+        .join(" ");
+
+      const photos = await pexelsClient.photos.search({
+        query: searchTerms,
+        per_page: 1,
+        orientation: "landscape",
+      });
+
+      if (photos.photos && photos.photos.length > 0) {
+        return photos.photos[0].src.large2x;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching image for "${title}":`, error.message);
+      return null;
+    }
+  };
 
   const sys = `
 You are a specialized content generator focused on creating developer-focused article headlines. Generate articles about software development, programming, and technology trends.
@@ -103,7 +106,7 @@ Example output format:
 `;
 
   try {
-    const response = await axios.post(`${process.env.OLLAMA_URL}/api/generate`, {
+    const response = await axios.post(`${env.OLLAMA_URL}/api/generate`, {
       model: "llama3.2",
       prompt: `system: ${sys} ${query.prompt}`,
       stream: false,

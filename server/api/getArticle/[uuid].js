@@ -3,23 +3,26 @@ import { defineEventHandler, getQuery } from "h3";
 import { createStorage } from "unstorage";
 import fsDriver from "unstorage/drivers/fs";
 
-const storage = createStorage({
-  driver: fsDriver({ base: process.env.STORAGE_PATH }),
-});
-
-// Function to read existing JSON data from file
-const readJSONFile = async (uuid) => {
-  return await storage.getItem(`articles:${uuid}.json`);
-};
-
-// Function to write JSON data to file
-const writeJSONFile = async (data, uuid) => {
-  await storage.set(`articles:${uuid}.json`, data);
-};
-
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const routeParams = event.context.params;
+
+  const config = useRuntimeConfig();
+  const env = config.public;
+
+  const storage = createStorage({
+    driver: fsDriver({ base: env.UNSTORAGE_PATH }),
+  });
+
+  // Function to read existing JSON data from file
+  const readJSONFile = async (uuid) => {
+    return await storage.getItem(`articles:${uuid}.json`);
+  };
+
+  // Function to write JSON data to file
+  const writeJSONFile = async (data, uuid) => {
+    await storage.set(`articles:${uuid}.json`, data);
+  };
 
   const sys = `
 You are an API that generates developer-focused articles in JSON format. Generate a single article with the following strict specifications:
@@ -77,7 +80,7 @@ Topics must focus on:
       event.node.res.end(JSON.stringify(existingData));
     }
 
-    const response = await axios.post(`${process.env.OLLAMA_URL}/api/generate`, {
+    const response = await axios.post(`${env.OLLAMA_URL}/api/generate`, {
       model: "llama3.2",
       prompt: `system: ${sys} ${query.currentPostHeadline}`,
       stream: false,
